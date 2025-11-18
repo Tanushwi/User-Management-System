@@ -1,11 +1,11 @@
-<<<<<<< HEAD
+
 function errorHandler(err, req, res, next) {
   console.error("Error:", err);
   res.status(500).send("Internal server error");
 }
 
 module.exports = { errorHandler };
-=======
+
 const { verifyToken } = require('../utils/cryptoAuth');
 const User = require('../models/User');
 const Log = require('../models/Log');
@@ -48,4 +48,3 @@ function errorHandler(err, req, res, next) {
 }
 
 module.exports = { authMiddleware, errorHandler };
->>>>>>> 7da0f1c6348f292252a1d41f37b31f0e076a7aac
