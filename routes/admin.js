@@ -1,21 +1,34 @@
+// routes/admin.js
 const express = require('express');
 const router = express.Router();
-const adminCtrl = require('../controllers/adminController');
-const { authMiddleware } = require('../middlewares/auth');
-const { permit } = require('../middlewares/roles');
-const limiter = require('../middlewares/rateLimiter');
 
-// admin-only: allow admin or superadmin
-router.use(authMiddleware);
-router.use(permit('admin','superadmin'));
+module.exports = function(publish, usersStore) {
+  router.get('/dashboard', (req, res) => {
+  const user = req.session.user;
+  if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
 
-// route-level limiter for admin routes
-router.get('/users', limiter('admin-list', 30, 60*1000), adminCtrl.listUsers);
-router.delete('/users/:id', limiter('admin-delete', 20, 60*1000), adminCtrl.softDelete);
-router.patch('/users/:id/restore', limiter('admin-restore', 20, 60*1000), adminCtrl.restore);
-router.put('/users/:id', limiter('admin-update', 30, 60*1000), adminCtrl.updateUser);
+  const users = usersStore.list();
 
-router.get('/export', limiter('admin-export', 5, 60*1000), adminCtrl.exportCSV);
-router.get('/stats', limiter('admin-stats', 10, 60*1000), adminCtrl.stats);
+  res.render('admin/dashboard', { 
+    user,
+    users
+  });
+});
 
-module.exports = router;
+  router.post('/delete/:id', (req, res) => {
+    const user = req.session.user;
+    if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
+    const id = req.params.id;
+    const ok = usersStore.remove(id);
+    if (ok) publish('admin:user_deleted', { id });
+    res.redirect('/admin/dashboard');
+  });
+
+  router.get('/users/json', (req, res) => {
+    const user = req.session.user;
+    if (!user || user.role !== 'admin') return res.status(403).json({ ok:false });
+    res.json({ ok:true, users: usersStore.list() });
+  });
+
+  return router;
+};
