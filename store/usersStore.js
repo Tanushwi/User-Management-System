@@ -1,8 +1,7 @@
-// store/usersStore.js
+
 const { v4: uuidv4 } = require('uuid');
 
 const users = [
-  // default admin
   { id: uuidv4(), name: 'Admin', email: 'admin@example.com', password: 'admin123', role: 'admin', createdAt: Date.now() }
 ];
 
@@ -21,3 +20,4 @@ module.exports = {
     return idx >= 0;
   }
 };
+
