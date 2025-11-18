@@ -1,55 +1,85 @@
-// app.js - Single-file config (no .env) - simple & explainable
+
 const express = require('express');
 const path = require('path');
+const http = require('http');
+const session = require('express-session');
+const { EventEmitter } = require('events');
 
-const { connectDB } = require('./config/db');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
-const { errorHandler } = require('./middleware/auth');
-const maintenance = require('./middleware/maintenance');
-const { hardDeleteCleanup } = require('./controller/adminController'); // cleanup task
-
-// ====== GLOBAL CONFIG (change here if needed) ======
-const PORT = 3000;
-const MONGO_URI = 'mongodb://localhost:27017/user_management';
-global.AUTH_SECRET = 'mysupersecretkey_change_for_demo'; // used by cryptoAuth
-global.TOKEN_EXPIRY = 3600; // seconds
-global.MAINTENANCE = false; // set true to enable maintenance mode
-// =====================================================
-
-connectDB(MONGO_URI);
+const pagesRoutes = require('./routes/pages');
+const { errorHandler } = require('./middleware/errorHandler');
+const { hardDeleteCleanup } = require('./controller/adminController');
 
 const app = express();
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ extended: true }));
+const server = http.createServer(app);
+const io = require('socket.io')(server);
 
-app.set('views', path.join(__dirname, 'views'));
+const PORT = process.env.PORT || 3888;
+
+const pubsub = new EventEmitter();
+
+const usersStore = require('./store/usersStore');
+
 app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 
-// maintenance middleware - blocks non-admins when MAINTENANCE true
-app.use(maintenance);
+app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
-// simple request logger (console + file)
+const sessionMiddleware = session({
+  secret: process.env.SESSION_SECRET || 'devsecret',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { maxAge: 1000*60*60 }
+});
+app.use(sessionMiddleware);
+
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
+  req.pubsub = pubsub;
+  req.usersStore = usersStore;
   next();
 });
 
-// routes
-app.use('/api/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
+io.use((socket, next) => {
+  sessionMiddleware(socket.request, {}, next);
+});
 
-// demo pages
-app.get('/', (req, res) => res.render('index'));
-app.get('/login', (req, res) => res.render('login'));
+io.on('connection', (socket) => {
+  console.log('Socket connected', socket.id);
+  socket.emit('welcome', { msg: 'Connected', socketId: socket.id });
 
-// schedule hard-delete cleanup: run every hour
+  const handler = (data) => {
+    io.emit(data.channel, data.payload);
+  };
+  pubsub.on('broadcast', handler);
+
+  socket.on('disconnect', () => {
+    pubsub.off('broadcast', handler);
+  });
+});
+
+function publish(channel, payload) {
+  process.nextTick(() => pubsub.emit('broadcast', { channel, payload }));
+}
+
+app.get('/', (req, res) => {
+  const user = req.session.user || null;
+  res.render('home', { user });
+});
+app.use('/auth', authRoutes(publish, usersStore));
+app.use('/admin', adminRoutes(publish, usersStore));
+app.use('/', pagesRoutes);
+
 setInterval(() => {
-  hardDeleteCleanup().catch(err => console.error('Cleanup err', err));
-}, 60 * 60 * 1000); // every hour
+  hardDeleteCleanup().catch(console.error);
+}, 60*60*1000);
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+ server.listen(PORT, () => {
+  console.log(`Server running: http://localhost:${PORT}`);
 });
+
+module.exports = { app, server, io, publish };
