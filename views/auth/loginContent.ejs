@@ -1,0 +1,13 @@
+<div class="card mx-auto" style="max-width:500px;">
+  <div class="card-body">
+    <h3>Login</h3>
+    <% if (error) { %>
+      <div class="alert alert-danger"><%= error %></div>
+    <% } %>
+    <form method="post" action="/auth/login">
+      <input class="form-control mb-3" name="email" placeholder="Email" required>
+      <input class="form-control mb-3" type="password" name="password" placeholder="Password" required>
+      <button class="btn btn-primary">Login</button>
+    </form>
+  </div>
+</div>

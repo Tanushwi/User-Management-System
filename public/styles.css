@@ -1,0 +1,7 @@
+/* public/styles.css - modern tidy look */
+body { background:#f5f7fb; color:#333; }
+.navbar-brand { font-weight:700; letter-spacing:0.6px; }
+.sidebar { min-height:100vh; border-right:1px solid rgba(0,0,0,0.05); }
+.card { border-radius:12px; }
+footer { background:transparent; color:#888; }
+#liveEvents { max-height:220px; overflow:auto; }

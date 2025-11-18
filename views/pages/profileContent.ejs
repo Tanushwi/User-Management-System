@@ -1,0 +1,31 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>User Profile</h2>
+</div>
+
+<div class="row">
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5>Profile Information</h5>
+        <table class="table table-borderless">
+          <tr>
+            <td><strong>Name:</strong></td>
+            <td><%= user.name %></td>
+          </tr>
+          <tr>
+            <td><strong>Email:</strong></td>
+            <td><%= user.email %></td>
+          </tr>
+          <tr>
+            <td><strong>Role:</strong></td>
+            <td><%= user.role %></td>
+          </tr>
+          <tr>
+            <td><strong>Joined:</strong></td>
+            <td><%= new Date(user.createdAt || Date.now()).toLocaleDateString() %></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
