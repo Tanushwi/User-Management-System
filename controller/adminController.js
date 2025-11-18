@@ -5,7 +5,6 @@ async function hardDeleteCleanup() {
 }
 module.exports = { hardDeleteCleanup };
 
-// controller/adminController.js
 async function hardDeleteCleanup() {
   console.log('hardDeleteCleanup running', new Date().toISOString());
   // placeholder - implement DB cleanup if needed
